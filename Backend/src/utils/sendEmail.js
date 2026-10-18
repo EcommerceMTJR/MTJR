@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken"
-import { verifyEmailTemplate } from "./templeteHtml.js";
+import { verifyEmailTemplate,resetPasswordTemplate } from "./templeteHtml.js";
 import dotenv from "dotenv"
 dotenv.config()
 import nodemailer from "nodemailer";
@@ -23,3 +23,12 @@ export const sendGmaiWithToken = (email,userName) => {
     })
     return sender
 }
+export const sendGmailWithOtp = (email, otp) => {
+    const sender = transporter.sendMail({
+        from: process.env.nodeMailer_userGmail,
+        to: email,
+        subject: `Reset Password , تغير كلمة المرور`,
+        html: resetPasswordTemplate(email, otp),
+    });
+    return sender;
+ }

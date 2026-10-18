@@ -21,6 +21,7 @@
     "nodemailer": "^10.1.0",
     "pg": "^8.23.1",
     "pg-hstore": "^2.3.4",
+    "random-string": "^0.2.0",
     "sequelize": "^6.37.8"
   }
 }

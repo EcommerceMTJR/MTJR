@@ -8,11 +8,12 @@ export const authentication = asyncHandler(async (req, res, next) => {
         return res.status(401).json({ success: false, message: "token not found" });
     }
     const token = tokenheader.split(" ")[1];
-    const { id } = jwt.verify(token, process.env.jwt_secret_key);
-    const user = await User.findById(id).select("-password");
+    const { id } = jwt.verify(token, process.env.token_login);
+    const user = await User.findByPk(id,{attributes:{exclude:'password'}})
     if (!user) {
         return res.status(404).json({ success: false, message: "user not Found" });
     }
+    console.log(user)
     req.user = user;
     next();
 });

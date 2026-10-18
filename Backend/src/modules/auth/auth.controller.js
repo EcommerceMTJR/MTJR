@@ -9,5 +9,8 @@ const authRouter = Router();
 authRouter.post("/register", validation(authSchema.registerSchema), authService.register);
 authRouter.get("/activate/:token", authService.activeToken);
 authRouter.post("/login",validation(authSchema.loginSchema),authService.login)
+authRouter.get("/profile", authentication, authService.profile)
+authRouter.post("/sendOtp", authService.sendOtp)
+authRouter.post("/resetPassword", authService.resetPassword)
 
 export default authRouter;
