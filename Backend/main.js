@@ -10,8 +10,10 @@ bootstrap(express,app);
 app.get("/", (req, res) => {
     res.send("server is running");
 });
-app.listen(port, () => {
-    console.log("Server is running on port 3000");
-});
+if (process.env.NODE_ENV !== "production") {
+    app.listen(process.env.PORT || 3000, () => {
+        console.log("Server is running locally...");
+    });
+}
 
 export default app;
