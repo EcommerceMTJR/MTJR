@@ -154,10 +154,6 @@ Review.belongsTo(Product, {
     foreignKey: "productId",
     as: "product",
 });
-db.sync({ alter: true }).then(() => {
-    console.log("Database synced");
-}).catch((err) => {
-    console.log(err);
-});
+
 export { User, Address, Product, Cart, CartItem, Order, OrderItem, Payment, Review, Wishlist, WishlistItem, ProductImage, Category };
 

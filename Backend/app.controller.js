@@ -2,10 +2,17 @@ import dotenv from "dotenv";
 import db from "./src/models/connection.js";
 import authRouter from "./src/modules/auth/auth.controller.js";
 import { User, Address, Product, Cart, CartItem, Order, OrderItem, Payment, Review, Wishlist, WishlistItem } from "./src/models/relation.js";
-export const bootstrap = (express, app) => {
+export const bootstrap =async (express, app) => {
     dotenv.config();
     app.use(express.json());
     db;
+    await db.sync({ alter: true })
+        .then(() => {
+            console.log("Database synced");
+        })
+        .catch((err) => {
+            console.log(err);
+        });
     app.use("/auth", authRouter);
 
     app.use("/", (req, res, next) => {
