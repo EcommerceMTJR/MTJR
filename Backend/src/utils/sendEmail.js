@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransport({
 });
 export const sendGmaiWithToken = (email,userName) => {
     const token = jwt.sign({ email }, process.env.key_Token_Secret)
-    const link = `http://localhost:3000/auth/activate/${token}`;
+    const link = `https://mtjr-backend.vercel.app/auth/activate/${token}`;
     const sender= transporter.sendMail({
         from: process.env.nodeMailer_userGmail,
         to: email,

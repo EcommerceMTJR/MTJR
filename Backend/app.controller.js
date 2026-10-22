@@ -1,26 +1,47 @@
 import dotenv from "dotenv";
 import db from "./src/models/connection.js";
 import authRouter from "./src/modules/auth/auth.controller.js";
-import { User, Address, Product, Cart, CartItem, Order, OrderItem, Payment, Review, Wishlist, WishlistItem } from "./src/models/relation.js";
-export const bootstrap =async (express, app) => {
-    dotenv.config();
+import "./src/models/relation.js"; // بيسجّل الموديلات والعلاقات
+
+dotenv.config();
+
+let dbReady = null;
+const initDb = () => {
+    if (!dbReady) {
+        dbReady = db
+            .sync({ alter: true })
+            .then(() => console.log("Database synced"))
+            .catch((err) => {
+                dbReady = null; // يحاول تاني في الطلب الجاي
+                console.error(err);
+                throw err;
+            });
+    }
+    return dbReady;
+};
+
+export const bootstrap = (express, app) => {
     app.use(express.json());
-    db;
-    await db.sync({ alter: true })
-        .then(() => {
-            console.log("Database synced");
-        })
-        .catch((err) => {
-            console.log(err);
-        });
-    app.use("/auth", authRouter);
-
-    app.use("/", (req, res, next) => {
-        return res.status(500).json({ success: false, message: "route not Found" });
+    // أي request يستنى الداتابيز تجهز (مرة واحدة بس)
+    app.use(async (req, res, next) => {
+        try {
+            await initDb();
+            next();
+        } catch (err) {
+            next(err);
+        }
     });
-
+    app.use("/auth", authRouter);
+    // 404 handler
+    app.use((req, res) => {
+        res.status(404).json({ success: false, message: "route not Found" });
+    });
+    // error handler
     app.use((err, req, res, next) => {
         const statusCode = err.cause || err.statusCode || 500;
-        res.status(statusCode).json({ success: false, message: err.message || "Internal Server Error", stack: err.stack });
+        res.status(statusCode).json({
+            success: false,
+            message: err.message || "Internal Server Error",
+        });
     });
 };
