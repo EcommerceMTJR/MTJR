@@ -9,7 +9,7 @@ export const authentication = asyncHandler(async (req, res, next) => {
     }
     const token = tokenheader.split(" ")[1];
     const { id } = jwt.verify(token, process.env.token_login);
-    const user = await User.findByPk(id,{attributes:{exclude:'password'}})
+    const user = await User.findByPk(id,{attributes:{exclude:['password']}})
     if (!user) {
         return res.status(404).json({ success: false, message: "user not Found" });
     }

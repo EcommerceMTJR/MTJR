@@ -1,6 +1,6 @@
 import axios from "axios";
-import dotenv from "dotenv";
-dotenv.config();
+
+
 import asyncHandler from "../../middlewares/asyncHandler.js";
 
 // ==================== 1. SERVICES ====================

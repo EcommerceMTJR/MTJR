@@ -1,6 +1,6 @@
 import Router from "express";
 import { roles } from "../../models/user.model.js";
-import { authentication } from "../../middlewares/authentication .js";
+import { authentication } from "../../middlewares/authentication.js";
 import { authorization } from "../../middlewares/authorization.js";
 import * as authSchema from "./auth.schema.js";
 import * as authService from "./auth.service.js";

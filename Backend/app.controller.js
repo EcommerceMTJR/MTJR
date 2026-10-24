@@ -1,10 +1,16 @@
-import dotenv from "dotenv";
+
 import db from "./src/models/connection.js";
 import authRouter from "./src/modules/auth/auth.controller.js";
-import "./src/models/relation.js"; // بيسجّل الموديلات والعلاقات
 
-dotenv.config();
+import cors from "cors";
 
+
+const corsOptions = {
+    origin: [
+        "http://localhost:5173"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "tokenheader", "Authorization"],
+};
 let dbReady = null;
 const initDb = () => {
     if (!dbReady) {
@@ -21,7 +27,11 @@ const initDb = () => {
 };
 
 export const bootstrap = (express, app) => {
+    app.use(cors(corsOptions));
     app.use(express.json());
+    db.authenticate()
+        .then(() => console.log("Database connected"))
+        .catch((err) => console.error("DB connection failed:", err.message));
     // أي request يستنى الداتابيز تجهز (مرة واحدة بس)
     app.use(async (req, res, next) => {
         try {

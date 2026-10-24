@@ -1,4 +1,4 @@
-import db from "../../models/connection.js";
+
 import randomstring from "random-string";
 import Otp from "../../models/otp.js";
 import jwt from "jsonwebtoken";
@@ -64,7 +64,7 @@ export const profile = asyncHandler(async (req, res, next) => {
 
 export const sendOtp = asyncHandler(async (req, res, next) => {
     const { email,userName } = req.body
-    const user = User.findOne({ where: { email } })
+    const user =await User.findOne({ where: { email } })
     if(!user){
         throwError("User not found", 404)
     }

@@ -2,9 +2,14 @@ import dotenv from "dotenv"
 dotenv.config()
 import express from "express";
 import { bootstrap } from "./app.controller.js";
+import cors from "cors";
 
 const app = express();
 const port = 3000;
+
+app.use(cors({
+    origin: ["http://localhost:5173"],
+}))
 app.get("/", (req, res) => {
     res.send("server is running");
 });

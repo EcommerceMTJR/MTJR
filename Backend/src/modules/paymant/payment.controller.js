@@ -5,4 +5,4 @@ const paymentrouter = router();
 
 
 paymentrouter.post("/pay", paymentService.processOnlinePayment);
-paymentrouter.post("/webhook",paymentService.);
+paymentrouter.post("/webhook",paymentService.paymobWebhook);
