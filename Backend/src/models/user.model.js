@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import db from "./connection.js"
+import db from "./connection.js";
 export const roles = {
     admin: "admin",
     user: "user",
@@ -30,13 +30,13 @@ const User = db.define(
             },
         },
         password: {
-            type: DataTypes.TEXT, 
+            type: DataTypes.TEXT,
             allowNull: false,
         },
         phone: {
             type: DataTypes.TEXT,
             allowNull: false,
-            unique: true, 
+            unique: true,
         },
         isVerified: {
             type: DataTypes.BOOLEAN,
@@ -51,7 +51,7 @@ const User = db.define(
         isActive: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
-            defaultValue: true, 
+            defaultValue: true,
         },
         verificationToken: {
             type: DataTypes.STRING,
@@ -72,11 +72,11 @@ const User = db.define(
         indexes: [
             {
                 unique: true,
-                fields: ["email"], 
+                fields: ["email"],
             },
             {
                 unique: true,
-                fields: ["phone"], 
+                fields: ["phone"],
             },
         ],
     },

@@ -1,8 +1,12 @@
-import asyncHandler from "../../middlewares/asyncHandler.js";
+
+import { authentication } from "../../middlewares/authentication.js";
 import * as paymentService from "./payment.service.js"; // نفترض أن ملف الـ Service موجود بجانبه
 import router from "express";
-const paymentrouter = router();
+const paymentRouter = router();
 
 
-paymentrouter.post("/pay", paymentService.processOnlinePayment);
-paymentrouter.post("/webhook",paymentService.paymobWebhook);
+paymentRouter.post("/pay", authentication,paymentService.processOnlinePayment);
+paymentRouter.post("/webhook",paymentService.paymobWebhook);
+
+
+export default paymentRouter

@@ -3,6 +3,7 @@ import db from "./src/models/connection.js";
 import authRouter from "./src/modules/auth/auth.controller.js";
 
 import cors from "cors";
+import paymentRouter from "./src/modules/paymant/payment.controller.js";
 
 
 const corsOptions = {
@@ -42,6 +43,7 @@ export const bootstrap = (express, app) => {
         }
     });
     app.use("/auth", authRouter);
+    app.use("/payment",paymentRouter)
     // 404 handler
     app.use((req, res) => {
         res.status(404).json({ success: false, message: "route not Found" });

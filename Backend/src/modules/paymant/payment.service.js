@@ -1,7 +1,9 @@
 import axios from "axios";
-
-
+import crypto from "crypto";
+import CryptoJS from "crypto-js";
 import asyncHandler from "../../middlewares/asyncHandler.js";
+import { throwError } from "../../utils/helperFunction.js";
+import Product from "../../models/Product.js";
 
 // ==================== 1. SERVICES ====================
 
@@ -17,12 +19,13 @@ export const getPaymentAuthToken = async () => {
 };
 
 // 2. تسجيل الطلب
-export const createPaymentOrder = async (authToken, amountCents, items) => {
+export const createPaymentOrder = async (authToken, amountCents, items, merchantOrderId) => {
     const response = await axios.post("https://accept.paymob.com/api/ecommerce/orders", {
         auth_token: authToken,
         delivery_needed: false,
         amount_cents: amountCents,
         currency: "EGP",
+        merchant_order_id: merchantOrderId,
         items: items,
     });
 
@@ -66,45 +69,118 @@ export const getPaymentKey = async (authToken, paymobOrderId, amountCents, billi
     return response.data.token;
 };
 
+// 4. التحقق من توقيع Paymob (HMAC)
+const verifyPaymobHmac = (obj, receivedHmac) => {
+    if (!obj || !receivedHmac) return false;
+
+    const fields = [
+        obj.amount_cents,
+        obj.created_at,
+        obj.currency,
+        obj.error_occured,
+        obj.has_parent_transaction,
+        obj.id,
+        obj.integration_id,
+        obj.is_3d_secure,
+        obj.is_auth,
+        obj.is_capture,
+        obj.is_refunded,
+        obj.is_standalone_payment,
+        obj.is_voided,
+        obj.order?.id,
+        obj.owner,
+        obj.pending,
+        obj.source_data?.pan,
+        obj.source_data?.sub_type,
+        obj.source_data?.type,
+        obj.success,
+    ];
+
+    const calculated = crypto.createHmac("sha512", process.env.PAYMOB_HMAC_SECRET).update(fields.join("")).digest("hex");
+
+    const a = Buffer.from(calculated);
+    const b = Buffer.from(String(receivedHmac));
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+};
+
 // ==================== 2. CONTROLLERS ====================
 
 // دالة بدء عملية الدفع وتوليد الرابط
+// الفرونت يبعت بس: { items: [{ productId: 1, quantity: 2 }] }
 export const processOnlinePayment = asyncHandler(async (req, res, next) => {
-    const { amount, items, billingData } = req.body;
+    const { items } = req.body;
+    const { user } = req; // جاي من authentication
 
-    // الخطوة الأولى: الحصول على الـ Auth Token
+    if (!Array.isArray(items) || items.length === 0) {
+        throwError("items are required", 400);
+    }
+
+    // الخطوة الأولى: احسب المبلغ في الباك من الداتابيز (مش من الفرونت)
+    const ids = items.map((i) => i.productId);
+    const products = await Product.findAll({ where: { id: ids } });
+
+    let amountCents = 0;
+    const paymobItems = items.map((item) => {
+        const product = products.find((p) => p.id === item.productId);
+        const quantity = parseInt(item.quantity);
+        if (!product || !Number.isInteger(quantity) || quantity < 1) {
+            throwError("Invalid product or quantity", 400);
+        }
+        const unitCents = Math.round(Number(product.price) * 100);
+        amountCents += unitCents * quantity;
+        return {
+            name: product.name,
+            amount_cents: unitCents,
+            description: product.name,
+            quantity,
+        };
+    });
+
+    // الخطوة الثانية: بيانات الدفع من اليوزر المسجل (مع فك تشفير الموبايل)
+    const phone = CryptoJS.AES.decrypt(user.phone, process.env.ecryptphone_key).toString(CryptoJS.enc.Utf8);
+    const billingData = {
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone,
+    };
+
+    // الخطوة الثالثة: الحصول على الـ Auth Token وتسجيل الطلب
+    const merchantOrderId = `${user.id}-${Date.now()}`; // الأفضل: id طلب حقيقي من جدول Order
     const authToken = await getPaymentAuthToken();
+    const paymobOrderId = await createPaymentOrder(authToken, amountCents, paymobItems, merchantOrderId);
 
-    // الخطوة الثانية: تسجيل الطلب لدى Paymob
-    const amountCents = Math.round(amount * 100);
-    const paymobOrderId = await createPaymentOrder(authToken, amountCents, items);
-
-    // الخطوة الثالثة: طلب مفتاح الدفع
+    // الخطوة الرابعة: طلب مفتاح الدفع
     const paymentKey = await getPaymentKey(authToken, paymobOrderId, amountCents, billingData);
 
-    // الخطوة الرابعة: بناء رابط الـ Iframe
+    // الخطوة الخامسة: بناء رابط الـ Iframe
     const iframeId = process.env.PAYMOB_IFRAME_ID;
     const paymentUrl = `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}`;
 
     return res.status(200).json({
         success: true,
         message: "Payment key generated successfully",
-        paymentKey,
         paymentUrl,
     });
 });
 
 // دالة استقبال إشعارات الـ Webhook من Paymob بعد الدفع
 export const paymobWebhook = asyncHandler(async (req, res, next) => {
-    const orgData = req.body;
-    const transaction = orgData.obj;
+    const transaction = req.body?.obj;
 
-    if (transaction.success === true) {
+    // لازم نتأكد إن الطلب جاي من Paymob فعلاً
+    if (!verifyPaymobHmac(transaction, req.query.hmac)) {
+        return res.status(401).json({ success: false, message: "Invalid HMAC" });
+    }
+
+    if (transaction.success === true && transaction.pending === false) {
         const paymobOrderId = transaction.order.id;
+        const merchantOrderId = transaction.order.merchant_order_id;
         const amountPaid = transaction.amount_cents / 100;
 
-        // هنا يمكنك تحديث حالة الطلب في قاعدة البيانات لديك (مثلاً Order.update({ status: 'paid' }))
-        console.log(`Order ${paymobOrderId} paid successfully with amount ${amountPaid}`);
+        // TODO: حدّث حالة الطلب في الداتابيز وتأكد إنه مش اتعلّم مدفوع قبل كده
+        // await Order.update({ status: "paid" }, { where: { id: merchantOrderId, status: "pending" } });
+        console.log(`Order ${merchantOrderId} (paymob ${paymobOrderId}) paid successfully with amount ${amountPaid}`);
     } else {
         console.log("Payment failed or pending");
     }
