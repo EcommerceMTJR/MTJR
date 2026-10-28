@@ -3,7 +3,7 @@ import crypto from "crypto";
 import CryptoJS from "crypto-js";
 import asyncHandler from "../../middlewares/asyncHandler.js";
 import { throwError } from "../../utils/helperFunction.js";
-import Product from "../../models/Product.js";
+import Product from "../../models/product.model.js"; // عدّل المسار والاسم حسب مشروعك
 
 // ==================== 1. SERVICES ====================
 
@@ -117,21 +117,28 @@ export const processOnlinePayment = asyncHandler(async (req, res, next) => {
 
     // الخطوة الأولى: احسب المبلغ في الباك من الداتابيز (مش من الفرونت)
     const ids = items.map((i) => i.productId);
-    const products = await Product.findAll({ where: { id: ids } });
+    const products = await Product.findAll({ where: { id: ids, isActive: true } });
 
     let amountCents = 0;
     const paymobItems = items.map((item) => {
-        const product = products.find((p) => p.id === item.productId);
+        const product = products.find((p) => p.id === Number(item.productId));
         const quantity = parseInt(item.quantity);
         if (!product || !Number.isInteger(quantity) || quantity < 1) {
             throwError("Invalid product or quantity", 400);
         }
-        const unitCents = Math.round(Number(product.price) * 100);
+        if (product.stock < quantity) {
+            throwError(`Not enough stock for ${product.title}`, 400);
+        }
+
+        // لو فيه سعر بعد الخصم استخدمه، وإلا السعر العادي
+        const finalPrice = product.discountPrice ?? product.price;
+        const unitCents = Math.round(Number(finalPrice) * 100);
         amountCents += unitCents * quantity;
+
         return {
-            name: product.name,
+            name: product.title,
             amount_cents: unitCents,
-            description: product.name,
+            description: product.title,
             quantity,
         };
     });
