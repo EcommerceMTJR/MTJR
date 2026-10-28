@@ -3,7 +3,7 @@ import crypto from "crypto";
 import CryptoJS from "crypto-js";
 import asyncHandler from "../../middlewares/asyncHandler.js";
 import { throwError } from "../../utils/helperFunction.js";
-import Product from "../../models/product.model.js"; // عدّل المسار والاسم حسب مشروعك
+import Product from "../../models/Product.js"
 
 // ==================== 1. SERVICES ====================
 
