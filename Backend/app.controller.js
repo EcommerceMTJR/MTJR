@@ -5,6 +5,7 @@ import authRouter from "./src/modules/auth/auth.controller.js";
 import cors from "cors";
 import paymentRouter from "./src/modules/paymant/payment.controller.js";
 import adminRouter from "./src/modules/admin/admin.controller.js";
+import productRouter, { categoryRouter } from "./src/modules/product/product.controller.js";
 
 
 const corsOptions = {
@@ -45,7 +46,9 @@ export const bootstrap = (express, app) => {
     });
     app.use("/auth", authRouter);
     app.use("/payment", paymentRouter)
-    app.use("/admin",adminRouter)
+    app.use("/admin", adminRouter)
+    app.use("/product", productRouter)
+    app.use("/category",categoryRouter);
     // 404 handler
     app.use((req, res) => {
         res.status(404).json({ success: false, message: "route not Found" });
