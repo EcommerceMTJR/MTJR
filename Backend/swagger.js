@@ -1,7 +1,7 @@
 import path from "path";
 import { fileURLToPath } from "url";
 
-con;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import swaggerJsdoc from "swagger-jsdoc";
 
 export default swaggerJsdoc({
