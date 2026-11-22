@@ -8,6 +8,7 @@ import db from "./connection.js";
     email: {
         type: db.Sequelize.STRING,
         allowNull: false,
+        unique:true,
     },
     otp: {
         type: db.Sequelize.STRING,

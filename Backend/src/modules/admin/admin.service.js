@@ -7,13 +7,13 @@ import Product from "../../models/Product.js";
 import Category from "../../models/Category.js";
 import Order, { orderStatuses, paymentMethods } from "../../models/Order.js";
 import OrderItem from "../../models/OrderItem.js";
-import Payment from "../../models/Payment.js";
+import Payment, { paymentStatuses } from "../../models/Payment.js";
 import Address from "../../models/address.model.js";
 
 // ==================== Helpers ====================
 
 const getPagination = (query) => {
-    const page = Math.max(parseInt(query.page) || 1,1);
+    const page = Math.max(parseInt(query.page) || 1, 1);
     const limit = Math.min(Math.max(parseInt(query.limit) || 20, 1), 100);
     return { page, limit, offset: (page - 1) * limit };
 };
@@ -185,10 +185,19 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         }
 
         const changes = { status };
-        if (status === orderStatuses.delivered) changes.deliveredAt = new Date();
+        if (status === orderStatuses.delivered) {
+            changes.deliveredAt = new Date();
+            // الدفع عند الاستلام: الفلوس بتتأكد وقت التسليم
+            if (order.paymentMethod === paymentMethods.cash && !order.isPaid) {
+                changes.isPaid = true;
+                changes.paidAt = new Date();
+                await Payment.update({ status: paymentStatuses.completed }, { where: { orderId: id }, transaction: t });
+            }
+        }
 
-        // إلغاء طلب مدفوع: رجّع المخزون (الاسترداد المالي بيتم يدويًا من Paymob)
-        if (status === orderStatuses.cancelled && order.isPaid) {
+        // إلغاء: رجّع المخزون لو الطلب مدفوع أو كاش (المخزون بيتحجز وقت الطلب)
+        // الاسترداد المالي للمدفوع أونلاين بيتم يدويًا من Paymob
+        if (status === orderStatuses.cancelled && (order.isPaid || order.paymentMethod === paymentMethods.cash)) {
             const lines = await OrderItem.findAll({ where: { orderId: id }, transaction: t });
             for (const line of lines) {
                 const product = await Product.findByPk(line.productId, { transaction: t, lock: t.LOCK.UPDATE });

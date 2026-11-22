@@ -48,7 +48,7 @@ export const bootstrap = (express, app) => {
     app.use("/payment", paymentRouter)
     app.use("/admin", adminRouter)
     app.use("/product", productRouter)
-    app.use("/category",categoryRouter);
+    app.use("/category", categoryRouter);
     // 404 handler
     app.use((req, res) => {
         res.status(404).json({ success: false, message: "route not Found" });

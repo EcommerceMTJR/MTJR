@@ -5,11 +5,12 @@ import db from "../../models/connection.js";
 import asyncHandler from "../../middlewares/asyncHandler.js";
 import { throwError } from "../../utils/helperFunction.js";
 import Product from "../../models/Product.js";
-// عدّل أسماء الملفات دي حسب أسماء ملفاتك الفعلية (حروف كبيرة/صغيرة مهمة على Vercel)
-import Order, { orderStatuses, paymentMethods } from "../../models/Order.js"
+import Order, { orderStatuses, paymentMethods } from "../../models/Order.js";
 import OrderItem from "../../models/OrderItem.js";
 import Payment, { paymentStatuses } from "../../models/Payment.js";
 import Address from "../../models/address.model.js";
+import Cart from "../../models/Cart.js";
+import CartItem from "../../models/CartItem.js";
 
 // سعر الشحن بالجنيه (من .env لو موجود، وإلا 0)
 const SHIPPING_PRICE = Number(process.env.SHIPPING_PRICE || 0);
@@ -327,6 +328,15 @@ export const paymobWebhook = asyncHandler(async (req, res, next) => {
                 },
                 { transaction: t },
             );
+        }
+
+        // امسح المنتجات المدفوعة من سلة العميل (إجمالي السلة بيتحدّث في أول GET /cart)
+        const cart = await Cart.findOne({ where: { userId: order.userId }, transaction: t });
+        if (cart) {
+            await CartItem.destroy({
+                where: { cartId: cart.id, productId: lines.map((l) => l.productId) },
+                transaction: t,
+            });
         }
 
         console.log(`Order ${orderId} paid successfully with amount ${expectedCents / 100}`);
