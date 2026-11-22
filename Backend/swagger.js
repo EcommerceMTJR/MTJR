@@ -1,3 +1,7 @@
+import path from "path";
+import { fileURLToPath } from "url";
+
+con;
 import swaggerJsdoc from "swagger-jsdoc";
 
 export default swaggerJsdoc({
@@ -123,5 +127,5 @@ export default swaggerJsdoc({
             },
         },
     },
-    apis: ["./src/modules/**/*.js"],
+    apis: [path.join(__dirname, "src/modules/**/*.js").replace(/\\/g, "/")],
 });
